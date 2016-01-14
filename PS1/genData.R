@@ -1,7 +1,7 @@
 xfactor <- function(obsx=1000,obsy=1000,obsz=1000,mux=c(2,2,2),rhox=0.9,sdx1=2,savecsv=TRUE,savepdf=TRUE,seed=1234){
   
   library(mvtnorm)
-  library(scatterplot3d)
+  if (!require(scatterplot3d)) install.packages("scatterplot3d"); library(scatterplot3d)
   
   set.seed(seed)
 
