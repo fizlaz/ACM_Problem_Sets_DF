@@ -17,7 +17,7 @@ genBVN <- function(n = 1, seed = NA, muXY=c(0,1), sigmaXY=diag(2)) {
 }
 
 
-###########my code
+###########edited loanData
 loanData <- function(noApproved, noDenied, noUndecided, muApproved, muDenied, muUndecided, sdApproved, 
                      sdDenied, sdUndecided, rhoApproved, rhoDenied, rhoUndecided, seed=1111) {
   sigmaApproved <- sigmaXY(rho=rhoApproved, sdX=sdApproved[1], sdY=sdApproved[2])
@@ -81,7 +81,7 @@ ggplot(data = loanDf3, aes(x = solvency, y = PIratio,
   xlab("solvency") +
   ylab("PIratio") +
   theme_bw() +
-  theme(text=element_text(family="Arial")) +
+  theme(text=element_text(family="gargi")) +
   geom_abline(intercept = intercept1, slope = slope1) +
   geom_abline(intercept = intercept2, slope = slope2) +
   geom_abline(intercept = intercept3, slope = slope3)
@@ -133,7 +133,7 @@ ggplot(data = loanDf3, aes(x = solvency, y = PIratio,
   xlab("solvency") +
   ylab("PIratio") +
   theme_bw() +
-  theme(text=element_text(family="Arial")) +
+  theme(text=element_text(family="gargi")) +
   geom_abline(intercept = intercept1, slope = slope1) +
   geom_abline(intercept = intercept2, slope = slope2) +
   geom_abline(intercept = intercept3, slope = slope3)
