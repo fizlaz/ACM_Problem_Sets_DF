@@ -16,52 +16,6 @@ genBVN <- function(n = 1, seed = NA, muXY=c(0,1), sigmaXY=diag(2)) {
   return(rdraws)
 }
 
-loanData <- function(noApproved, noDenied, muApproved, muDenied, sdApproved, 
-                     sdDenied, rhoApproved, rhoDenied, seed=1111) {
-  sigmaApproved <- sigmaXY(rho=rhoApproved, sdX=sdApproved[1], sdY=sdApproved[2])
-  sigmaDenied <- sigmaXY(rho=rhoDenied, sdX=sdDenied[1], sdY=sdDenied[2])
-  approved <- genBVN(noApproved, muApproved, sigmaApproved, seed = seed)
-  denied <- genBVN(noDenied, muDenied, sigmaDenied, seed = seed+1)
-  loanDf <- as.data.frame(rbind(approved,denied))
-  deny <- c(rep("Approved", noApproved), rep("Denied", noDenied))
-  target = c(rep(0, noApproved), rep(1, noDenied))
-  loanDf <- data.frame(loanDf, deny, target)
-  colnames(loanDf) <- c("PIratio", "solvency", "deny", "target")
-  return(loanDf)
-}
-
-loanDf <- loanData(noApproved=50, noDenied=50, c(4, 150), c(10, 100), 
-                   c(1,20), c(2,30), -0.1, 0.6, 1221)
-
-ggplot(data = loanDf, 
-       aes(x = solvency, y = PIratio, colour=deny, fill=deny)) + 
-  geom_point() +
-  xlab("solvency") +
-  ylab("PIratio") +
-  theme_bw() +
-  theme(text=element_text(family="Arial"))
-
-ggplot(data = loanDf, 
-       aes(x = PIratio, y = target)) + 
-  geom_point() +
-  geom_smooth(method = "lm") +
-  scale_x_continuous("PIratio", limit = c(1, 16), 
-                     breaks = seq(1, 16, 1), expand = c(0, 0)) +
-  scale_y_continuous("deny", limit = c(-0.4, 1.8), 
-                     breaks = seq(-0.4, 1.8, 0.2), 
-                     expand = c(0, 0)) +
-  geom_hline(yintercept = 0, size = 0.3, linetype = 2) +
-  annotate("text", x = 13, y = 0.1, label = "Approved", family = "Arial",
-           size = 3.15) +
-  geom_hline(yintercept = 1, size = 0.3, linetype = 2) +
-  annotate("text", x = 3, y = 1.1, label = "Denied", family = "Arial",
-           size = 3.15) +
-  geom_hline(yintercept = 0.5, size = 0.3, linetype = 2) +
-  annotate("text", x = 13, y = 0.6, label = "Threshold", family = "Arial",
-           size = 3.15) +
-  theme_bw() +
-  theme(text = element_text(family = "Arial"))
-
 
 ###########my code
 loanData <- function(noApproved, noDenied, noUndecided, muApproved, muDenied, muUndecided, sdApproved, 
@@ -93,6 +47,7 @@ ggplot(data = loanDf3,
   theme_bw() +
   theme(text=element_text(family="Arial"))
 
+###OLS
 datafit1 <- lm(target1 ~ solvency + PIratio, data=loanDf3)
 
 datafit2 <- lm(target2 ~ solvency + PIratio, data=loanDf3)
@@ -108,7 +63,7 @@ bias2 <- coef(datafit2)[1]
 weights3 <- coef(datafit3)[c("solvency", "PIratio")]
 bias3 <- coef(datafit3)[1]
 
-#########plot with line below
+#########plot with lines below
 
 intercept1 <- (-bias1 + 0.5)/weights1["PIratio"]
 slope1 <- -(weights1["solvency"]/weights1["PIratio"])
@@ -119,8 +74,7 @@ slope2 <- -(weights2["solvency"]/weights2["PIratio"])
 intercept3 <- (-bias3 + 0.5)/weights3["PIratio"]
 slope3 <- -(weights3["solvency"]/weights3["PIratio"])
 
-# illustrating the data, now with the boundary, we use geom_abline(), 
-# this will work only for lines
+###ggplot with boundaries
 ggplot(data = loanDf3, aes(x = solvency, y = PIratio, 
                           colour=deny, fill=deny)) + 
   geom_point() +
@@ -132,7 +86,7 @@ ggplot(data = loanDf3, aes(x = solvency, y = PIratio,
   geom_abline(intercept = intercept2, slope = slope2) +
   geom_abline(intercept = intercept3, slope = slope3)
 
-#######
+#######fitting regression using matrix notation
 
 X <- as.matrix(cbind(ind=rep(1, nrow(loanDf3)), 
                      loanDf3[,c("PIratio", "solvency")]))
@@ -156,7 +110,7 @@ predictedLabels <- ifelse(label2, "Denied",predictedLabels)
 label3 <- (predictions==apply(predictions, 1, max))[,3]
 predictedLabels <- ifelse(label3, "Undecided",predictedLabels)
 
-######
+######confusion matrix
 
 confMatrixFreq <- table(loanDf3$deny, predictedLabels)
 confMatrixFreq
@@ -164,3 +118,27 @@ confMatrixFreq
 confMatrixProp <- prop.table(confMatrixFreq, 1)
 confMatrixProp
 
+#####output data formating
+findat <- cbind(loanDf3[,1:3],predictedLabels,predictions)
+colnames(findat) <- c("PIratio","solvency","deny","predicted","P(App)","P(Den)","P(Und)")
+
+#export csv
+write.csv(findat, file = "predictions.csv", row.names=FALSE)
+
+#export image
+pdf("discFunction3C.pdf")
+ggplot(data = loanDf3, aes(x = solvency, y = PIratio, 
+                          colour=deny, fill=deny)) + 
+  geom_point() +
+  xlab("solvency") +
+  ylab("PIratio") +
+  theme_bw() +
+  theme(text=element_text(family="Arial")) +
+  geom_abline(intercept = intercept1, slope = slope1) +
+  geom_abline(intercept = intercept2, slope = slope2) +
+  geom_abline(intercept = intercept3, slope = slope3)
+
+dev.off()
+
+#final output
+findat
