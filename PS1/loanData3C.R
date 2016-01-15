@@ -63,7 +63,7 @@ bias2 <- coef(datafit2)[1]
 weights3 <- coef(datafit3)[c("solvency", "PIratio")]
 bias3 <- coef(datafit3)[1]
 
-#########plot with lines below
+#########plot lines below
 
 intercept1 <- (-bias1 + 0.5)/weights1["PIratio"]
 slope1 <- -(weights1["solvency"]/weights1["PIratio"])
@@ -110,6 +110,42 @@ predictedLabels <- ifelse(label2, "Denied",predictedLabels)
 label3 <- (predictions==apply(predictions, 1, max))[,3]
 predictedLabels <- ifelse(label3, "Undecided",predictedLabels)
 
+#####correct LDA lines
+W <- weightsOptim
+w1 <- W[2:3,1]
+w2 <- W[2:3,2]
+w3 <- W[2:3,3]
+w1b <- W[1,1]
+w2b <- W[1,2]
+w3b <- W[1,3]
+
+x <- seq(min(loanDf3["PIratio"]), max(loanDf3["PIratio"]), length.out = 150)
+
+# Compute discriminant lines
+l01 <- ((W[1,2] - W[1,1]) / (W[3,1] - W[3,2])) + ((W[2,2] - W[2,1]) / (W[3,1] - W[3,2])) * x
+l02 <- ((W[1,2] - W[1,3]) / (W[3,3] - W[3,2])) + ((W[2,2] - W[2,3]) / (W[3,3] - W[3,2])) * x
+l03 <- ((W[1,1] - W[1,3]) / (W[3,3] - W[3,1])) + ((W[2,1] - W[2,3]) / (W[3,3] - W[3,1])) * x 
+
+# Set up boundaries
+b01 <- data.frame(PIratio=x, solvency=l01, deny=rep("1 vs. 2", length(x)))
+b02 <- data.frame(PIratio=x, solvency=l02, deny=rep("2 vs. 3", length(x)))
+b03 <- data.frame(PIratio=x, solvency=l03, deny=rep("3 vs. 1", length(x)))
+
+# Plot result
+
+ggplot(data = loanDf3, 
+       aes(x = solvency, y = PIratio,colour=deny,fill=deny)) + 
+  geom_point() +
+  scale_x_continuous("PIratio", limit = c(15, 280))+
+  xlab("solvency") +
+  ylab("PI ratio") +
+  theme_bw() +
+  geom_line( data = b01) +
+  geom_line( data = b02) + 
+  geom_line( data = b03) 
+
+######
+
 ######confusion matrix
 
 confMatrixFreq <- table(loanDf3$deny, predictedLabels)
@@ -127,17 +163,16 @@ write.csv(findat, file = "predictions.csv", row.names=FALSE)
 
 #export image
 pdf("discFunction3C.pdf")
-ggplot(data = loanDf3, aes(x = solvency, y = PIratio, 
-                          colour=deny, fill=deny)) + 
+ggplot(data = loanDf3, 
+       aes(x = solvency, y = PIratio,colour=deny,fill=deny)) + 
   geom_point() +
+  scale_x_continuous("PIratio", limit = c(15, 280))+
   xlab("solvency") +
-  ylab("PIratio") +
+  ylab("PI ratio") +
   theme_bw() +
-  theme(text=element_text(family="gargi")) +
-  geom_abline(intercept = intercept1, slope = slope1) +
-  geom_abline(intercept = intercept2, slope = slope2) +
-  geom_abline(intercept = intercept3, slope = slope3)
-
+  geom_line( data = b01) +
+  geom_line( data = b02) + 
+  geom_line( data = b03) 
 dev.off()
 
 #final output
