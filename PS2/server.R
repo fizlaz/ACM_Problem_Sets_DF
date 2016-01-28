@@ -80,8 +80,38 @@ shinyServer(function(input,output){
     }
 
     output$plot1 <- renderPlot({
-        generatePlot()}, height=500, width=750
+        generatePlot()}
     )
+
+    generateMatrix <- function(){
+        loanDf <- data.frame(genData())
+
+        loanDf <- cbind(loanDf,
+        target1 = c(rep(0, 50), rep(1, 50)),
+        target2 = c(rep(1, 50), rep(0, 50))
+        )
+
+        X <- as.matrix(cbind(ind=rep(1, nrow(loanDf)),
+                    loanDf[,c("PIratio", "solvency")]))
+        Y <- cbind(target1 = c(rep(0, 50), rep(1, 50)),
+                    target2 = c(rep(1, 50), rep(0, 50))
+                    )
+        weightsOptim <- solve(t(X)%*%X) %*% t(X) %*% Y
+
+        predictions <- X %*% weightsOptim
+
+        denied <- (predictions==apply(predictions, 1, max))[,1]
+
+        predictedLabels <- ifelse(denied, "Denied", "Approved")
+
+        confMatrixFreq <- table(loanDf$deny, predictedLabels)
+
+        return(confMatrixFreq)
+    }
+
+    output$conf <- renderPrint({
+        generateMatrix()
+        })
 
     ###my code above
     #######################################

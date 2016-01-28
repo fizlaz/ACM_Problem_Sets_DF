@@ -36,7 +36,8 @@ shinyUI(
         ),
 
         mainPanel(
-            plotOutput("plot1")
+            plotOutput("plot1"),
+            verbatimTextOutput("conf")
         )
     )
     #my code above
