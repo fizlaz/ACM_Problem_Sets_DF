@@ -3,7 +3,7 @@ kNN <- function(features,labels,k=3,p=2,test=NA){
 	features <- as.matrix(features)
 	n <- nrow(features)
 
-	if(length(test)==0){
+	if(is.na(test)){
 		distMatrix <- matrix(NA,n,n)
 
 		for (obs in 1:n){
