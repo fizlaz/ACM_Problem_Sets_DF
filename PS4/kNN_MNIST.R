@@ -55,5 +55,6 @@ ggplot(data = plottingData,
 
 
 kmodel <- knn(train = MNIST_training[,2:257],test = MNIST_test,cl=MNIST_training[,1],k=1)
-kmodel <- as.vector(kmodel)
-write.csv(kmodel, file = "MNIST_predictions.csv", row.names=FALSE)
+preds <- as.vector(kmodel)
+preds1 <- data.frame(kmodel)
+write.csv(preds1, file = "MNIST_predictions.csv", row.names=FALSE)
