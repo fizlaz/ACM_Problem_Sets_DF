@@ -21,12 +21,13 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
       features <- which(colnames(data) != all.vars(formula)[1])
     }
 
-  X <- matrix(data[,features])
-  Y <- data[,all.vars(formula)[1]]
-  K <- depth
+  x <- as.matrix(data[,features])
+  y <- data[,all.vars(formula)[1]]
+  maxdepth <- depth
+  costFnc <- costFnc
 
   #multiclass
-  findThresholdmulti <- function(x,y){
+  findThresholdmulti <- function(x,y,costFnc){
     noPoints<-length(x)
     errors <- rep(NA,noPoints-1)
     thresholds <- rep(NA,noPoints-1)
@@ -81,11 +82,13 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
     minError <- min(errors)
     bestThreshold <- thresholds[which(errors==minError)]
     # if more than 1 threshold has the same accuracy we choose one randomly
-    bestThreshold <- sample(bestThreshold, 1)
-    labels <- splitLabels[which(thresholds==bestThreshold),]
+    index <- sample(which(sample(bestThreshold,1)==bestThreshold),1)
+    bestThreshold <- thresholds[index]
+    #bestThreshold <- sample(bestThreshold, 1)
+    labels <- splitLabels[index,]
     # print(cbind(minError, bestThreshold, labels))
     #return probabilities
-    prob <- splitProbs[which(thresholds==bestThreshold),]
+    prob <- splitProbs[index,]
     labvec <- c(rep(labels[1],length(which(x<bestThreshold))),
                 rep(labels[2],length(which(x>=bestThreshold))))
     probvec <- c(rep(prob[1],length(which(x<bestThreshold))),
@@ -96,7 +99,8 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
   }#end of findThresholdmulti
 
   #multidimensional
-  findfeature <- function(X,Y){
+  findfeature <- function(X,Y,costFnc){
+    costFnc <- costFnc
     errors <- rep(NA,ncol(X))
     labels <- matrix(NA,nrow=ncol(X),ncol=2)
     prob <- matrix(NA,nrow=ncol(X),ncol=2)
@@ -104,12 +108,12 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
     labvec <- matrix(NA,nrow=length(Y),ncol=ncol(X))
     probvec <- matrix(NA,nrow=length(Y),ncol=ncol(X))
     for(i in 1:ncol(X)){
-      errors[i] <- findThresholdmulti$err
-      labels[i,] <- findThresholdmulti$labels
-      prob[i,] <- findThresholdmulti$prob
-      potthresholds[i] <- findThresholdmulti$thres
-      labvec[,i] <- findThresholdmulti$labvec
-      probvec[,i] <- findThresholdmulti$probvec
+      errors[i] <- findThresholdmulti(X[,i],Y,costFnc)$err
+      labels[i,] <- findThresholdmulti(X[,i],Y,costFnc)$labels
+      prob[i,] <- findThresholdmulti(X[,i],Y,costFnc)$prob
+      potthresholds[i] <- findThresholdmulti(X[,i],Y,costFnc)$thres
+      labvec[,i] <- findThresholdmulti(X[,i],Y,costFnc)$labvec
+      probvec[,i] <- findThresholdmulti(X[,i],Y,costFnc)$probvec
     }
     minError <- min(errors)
     featindex <- sample(which(errors==minError),1)
@@ -125,32 +129,36 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
 
   #predLabels <- rep(NA,length(Y))
 
-  recursivetree <- function(K,X,Y,depth=1,minPoints=minPoints){
+  recursivetree <- function(K,X,Y,depth=1,minPoints=minPoints,costFnc){
     depth <- depth
-    if(depth<=K){
+    k <- K
+    mp <- minPoints
+    costFnc <- costFnc
+    if(depth<=k){
       if(length(Y)>=minPoints){
         if(length(unique(Y))==1){
           labels <-rep(Y[1],length(Y))
           prob <- rep(1,length(Y))
           return(list(labels=labels,prob=prob))
         } else{
-          threshold <- findfeature(X,Y)$thres
-          labels <- findfeature(X,Y)$labvec
-          prob <- findfeature(X,Y)$probvec
-          featindex <- findfeature(X,Y)$featindex
+          threshold <- findfeature(X,Y,costFnc)$thres
+          labels <- findfeature(X,Y,costFnc)$labvec
+          prob <- findfeature(X,Y,costFnc)$probvec
+          featindex <- findfeature(X,Y,costFnc)$featindex
           left <- which(X[,featindex]<threshold)
-          if(!is.null(recursivetree(X=X[left,],Y=Y[left],depth=(depth+1)))){
-            labels[left] <-recursivetree(X=X[left,],Y=Y[left],
-                                        depth=(depth+1))$labels
-            prob[left]<-recursivetree(X=X[left,],Y=Y[left],depth=(depth+1))$prob
+          leftres <- recursivetree(K=k,X=X[left,],Y=Y[left], depth=(depth+1),
+                                   minPoints=mp,costFnc)
+          if(!is.null(leftres)){
+            labels[left] <- leftres$labels
+            prob[left]<- leftres$prob
           }
 
           right <- which(X[,featindex]>=threshold)
-          if(!is.null(recursivetree(X=X[right,],Y=Y[right],depth=(depth+1)))){
-            labels[right]<-recursivetree(X=X[right,],Y=Y[right],
-                                        depth=(depth+1))$labels
-            prob[right]<-recursivetree(X=X[right,],Y=Y[right],
-                                          depth=(depth+1))$prob
+          rightres <- recursivetree(K=k,X=X[right,],Y=Y[right], depth=(depth+1),
+                                    minPoints=mp,costFnc)
+          if(!is.null(rightres)){
+            labels[right]<- rightres$labels
+            prob[right]<- rightres$prob
           }
 
           return(list(labels=labels,prob=prob))
@@ -159,8 +167,9 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
     }
   }
 
-  result <- recursivetree(K=K,X=X,Y=Y,depth=1,minPoints=minPoints)
+  result <- recursivetree(K=maxdepth,X=x,Y=y,depth=1,minPoints=minPoints,
+                          costFnc)
   predLabels <- result$labels
+  prob <- result$prob
   return(list(predLabels=predLabels,prob=prob))
 }#cTree end
-
