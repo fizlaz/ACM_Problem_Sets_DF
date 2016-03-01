@@ -100,6 +100,7 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
 
   #multidimensional
   findfeature <- function(X,Y,costFnc){
+    X <- as.matrix(X)
     costFnc <- costFnc
     errors <- rep(NA,ncol(X))
     labels <- matrix(NA,nrow=ncol(X),ncol=2)
@@ -134,6 +135,8 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
     k <- K
     mp <- minPoints
     costFnc <- costFnc
+    X <- as.matrix(X)
+    Y <- Y
     if(depth<=k){
       if(length(Y)>=minPoints){
         if(length(unique(Y))==1){
@@ -145,6 +148,7 @@ cTree <- function(formula,data,depth,minPoints=10,costFnc="Entropy"){
           labels <- findfeature(X,Y,costFnc)$labvec
           prob <- findfeature(X,Y,costFnc)$probvec
           featindex <- findfeature(X,Y,costFnc)$featindex
+          print(featindex)
           left <- which(X[,featindex]<threshold)
           leftres <- recursivetree(K=k,X=X[left,],Y=Y[left], depth=(depth+1),
                                    minPoints=mp,costFnc)
