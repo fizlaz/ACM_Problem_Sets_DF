@@ -43,7 +43,7 @@ adats <- ada[[1]]$errs[,3]
 
 pdf("adaErrors.pdf")
 plot(pr1$trainerror,type = "l", col="blue",main = "adaBoost train and test error",
-     ylim = c(0.00,0.12))
+     ylim = c(0.00,0.12),ylab = "error",xlab = "iteration")
 lines(tsterr$testerror, col="red")
 lines(adatr,col="blue",type = "p",pch=16)
 lines(adats,col="red",type = "p",pch=16)
