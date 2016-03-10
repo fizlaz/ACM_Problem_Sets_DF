@@ -49,8 +49,6 @@ lines(adatr,col="blue",type = "p",pch=16)
 lines(adats,col="red",type = "p",pch=16)
 legend(50,0.12, 
       legend = c("train error","test error","ada::ada train","ada::ada test"),
-      pt.cex = 1,
-      cex = 1,
       lty=c(1,1,NA,NA), 
       pch=c(NA,NA,16,16),
       lwd=c(2.5,2.5,2.5,2.5),col=c("blue","red","blue","red")) 
